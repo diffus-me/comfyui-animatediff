@@ -8,6 +8,7 @@ from torch import Tensor
 from PIL import Image, ImageSequence
 from PIL.PngImagePlugin import PngInfo
 
+import execution_context
 import folder_paths
 
 from .motion_module import MotionWrapper
@@ -25,13 +26,16 @@ video_formats = ["video/" + x[:-5] for x in os.listdir(video_formats_dir)]
 
 class AnimateDiffModuleLoader:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
-                "model_name": (get_available_models(),),
+                "model_name": (get_available_models(context),),
             },
             "optional": {
                 "lora_stack": ("MOTION_LORA_STACK",),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             },
         }
 
@@ -72,8 +76,9 @@ class AnimateDiffModuleLoader:
         self,
         model_name: str,
         lora_stack: List = None,
+        context: execution_context.ExecutionContext = None,
     ):
-        motion_module = load_motion_module(model_name)
+        motion_module = load_motion_module(context, model_name)
 
         # inject loras
         if motion_module.is_v2:
@@ -93,14 +98,17 @@ class AnimateDiffModuleLoader:
 
 class AnimateDiffLoraLoader:
     @classmethod
-    def INPUT_TYPES(s):
+    def INPUT_TYPES(s, context: execution_context.ExecutionContext):
         return {
             "required": {
-                "lora_name": (get_available_loras(),),
+                "lora_name": (get_available_loras(context),),
                 "alpha": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.001}),
             },
             "optional": {
                 "lora_stack": ("MOTION_LORA_STACK",),
+            },
+            "hidden": {
+                "context": "EXECUTION_CONTEXT"
             },
         }
 
@@ -113,11 +121,12 @@ class AnimateDiffLoraLoader:
         lora_name: str,
         alpha: float,
         lora_stack: List = None,
+        context: execution_context.ExecutionContext = None,
     ):
         if not lora_stack:
             lora_stack = []
 
-        lora = load_lora(lora_name)
+        lora = load_lora(context, lora_name)
         lora_stack.append((lora, alpha))
 
         return (lora_stack,)

@@ -3,6 +3,7 @@ import hashlib
 import torch
 from typing import Dict
 
+import execution_context
 import folder_paths
 import comfy.model_management as model_management
 from comfy.utils import load_torch_file, calculate_parameters
@@ -31,20 +32,20 @@ folder_paths.folder_names_and_paths["AnimateDiffLora"] = (
 )
 
 
-def get_available_models():
-    return folder_paths.get_filename_list("AnimateDiff")
+def get_available_models(context: execution_context.ExecutionContext):
+    return folder_paths.get_filename_list(context, "AnimateDiff")
 
 
-def get_available_loras():
-    return folder_paths.get_filename_list("AnimateDiffLora")
+def get_available_loras(context: execution_context.ExecutionContext):
+    return folder_paths.get_filename_list(context, "AnimateDiffLora")
 
 
-def get_model_path(model_name):
-    return folder_paths.get_full_path("AnimateDiff", model_name)
+def get_model_path(context: execution_context.ExecutionContext, model_name):
+    return folder_paths.get_full_path(context, "AnimateDiff", model_name)
 
 
-def get_lora_path(lora_name):
-    return folder_paths.get_full_path("AnimateDiffLora", lora_name)
+def get_lora_path(context: execution_context.ExecutionContext, lora_name):
+    return folder_paths.get_full_path(context, "AnimateDiffLora", lora_name)
 
 
 def get_model_hash(file_path):
@@ -53,8 +54,8 @@ def get_model_hash(file_path):
         return hashlib.sha256(bytes).hexdigest()
 
 
-def load_motion_module(model_name: str):
-    model_path = get_model_path(model_name)
+def load_motion_module(context: execution_context.ExecutionContext, model_name: str):
+    model_path = get_model_path(context, model_name)
     model_hash = get_model_hash(model_path)
     if model_hash not in motion_modules:
         logger.info(f"Loading motion module {model_name}")
@@ -73,8 +74,8 @@ def load_motion_module(model_name: str):
     return motion_modules[model_hash]
 
 
-def load_lora(lora_name: str):
-    lora_path = get_lora_path(lora_name)
+def load_lora(context: execution_context.ExecutionContext, lora_name: str):
+    lora_path = get_lora_path(context, lora_name)
     lora_hash = get_model_hash(lora_path)
     if lora_hash not in motion_modules:
         logger.info(f"Loading lora {lora_name}")
