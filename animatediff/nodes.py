@@ -142,6 +142,7 @@ class AnimateDiffCombine:
             "hidden": {
                 "prompt": "PROMPT",
                 "extra_pnginfo": "EXTRA_PNGINFO",
+                "user_hash": "USER_HASH"
             },
         }
 
@@ -161,6 +162,7 @@ class AnimateDiffCombine:
         pingpong=False,
         prompt=None,
         extra_pnginfo=None,
+        user_hash=''
     ):
         # convert images to numpy
         frames: List[Image.Image] = []
@@ -170,7 +172,7 @@ class AnimateDiffCombine:
             frames.append(img)
 
         # save image
-        output_dir = folder_paths.get_output_directory() if save_image else folder_paths.get_temp_directory()
+        output_dir = folder_paths.get_output_directory(user_hash) if save_image else folder_paths.get_temp_directory(user_hash)
         (
             full_output_folder,
             filename,
@@ -265,8 +267,8 @@ class AnimateDiffCombine:
 
 class LoadVideo:
     @classmethod
-    def INPUT_TYPES(s):
-        input_dir = os.path.join(folder_paths.get_input_directory(), "video")
+    def INPUT_TYPES(s, user_hash:str):
+        input_dir = os.path.join(folder_paths.get_input_directory(user_hash), "video")
         if not os.path.exists(input_dir):
             os.makedirs(input_dir, exist_ok=True)
 
@@ -280,6 +282,9 @@ class LoadVideo:
                 "frame_start": ("INT", {"default": 0, "min": 0, "max": 0xFFFFFFFF, "step": 1}),
                 "frame_limit": ("INT", {"default": 16, "min": 1, "max": 10240, "step": 1}),
             },
+            "hidden": {
+                "user_hash": "USER_HASH"
+            }
         }
 
     CATEGORY = "Animate Diff/Utils"
@@ -324,8 +329,8 @@ class LoadVideo:
 
         return frames
 
-    def load(self, video: str, frame_start=0, frame_limit=16):
-        video_path = folder_paths.get_annotated_filepath(video)
+    def load(self, video: str, frame_start=0, frame_limit=16, user_hash=''):
+        video_path = folder_paths.get_annotated_filepath(video, user_hash)
         (_, ext) = os.path.splitext(video_path)
 
         if ext.lower() in {".gif", ".webp"}:
@@ -338,16 +343,16 @@ class LoadVideo:
         return (torch.cat(frames, dim=0), len(frames))
 
     @classmethod
-    def IS_CHANGED(s, image, *args, **kwargs):
-        image_path = folder_paths.get_annotated_filepath(image)
+    def IS_CHANGED(self, image: str, frame_start=0, frame_limit=16, user_hash=''):
+        image_path = folder_paths.get_annotated_filepath(image, user_hash)
         m = hashlib.sha256()
         with open(image_path, "rb") as f:
             m.update(f.read())
         return m.digest().hex()
 
     @classmethod
-    def VALIDATE_INPUTS(s, video, *args, **kwargs):
-        if not folder_paths.exists_annotated_filepath(video):
+    def VALIDATE_INPUTS(self, video: str, frame_start=0, frame_limit=16, user_hash=''):
+        if not folder_paths.exists_annotated_filepath(video, user_hash):
             return "Invalid video file: {}".format(video)
 
         return True
